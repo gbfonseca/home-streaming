@@ -1,0 +1,66 @@
+services:
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./config:/config
+      - ./movies:/movies #optional
+      - /home/$USER/Downloads:/home/$USER/Downloads #optional
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./sonarr/data:/config
+      - ./tvseries:/tv #optional
+      - /home/$USER/Downloads:/home/$USER/Downloads #optional
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+    volumes:
+      - ./prowlarr/data:/config
+      - ./torrentio.yml:/config/Definitions/Custom/torrent.yml
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    ports:
+      - 32400:32400
+    container_name: plex
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Etc/UTC
+      - VERSION=docker
+      - PLEX_CLAIM= #optional
+    volumes:
+      - ./plex/config:/config
+      - ./tvseries:/tv
+      - ./movies:/movies
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
