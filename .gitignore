@@ -4,3 +4,5 @@ plex
 prowlarr
 sonarr
 tvseries
+.env
+__pycache__/

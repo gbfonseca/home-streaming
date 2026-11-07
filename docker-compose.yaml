@@ -6,13 +6,13 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=America/Sao_Paulo
-      - WEBUI_PORT=8080
+      - WEBUI_PORT=8081
       - TORRENTING_PORT=6881
     volumes:
-      - ./config/qbittorrent:/config
-      - /mnt/e/Multimídia/Downloads:/downloads
+      - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/qbittorrent:/config
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Downloads:/downloads
     ports:
-      - 8080:8080
+      - 8081:8081
       - 6881:6881
       - 6881:6881/udp
     restart: unless-stopped
@@ -28,9 +28,9 @@ services:
       - TZ=America/Sao_Paulo
       - UMASK=002
     volumes:
-      - ./config/radarr:/config
-      - /mnt/e/Multimídia/Filmes:/movies
-      - /mnt/e/Multimídia/Downloads:/downloads
+      - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/radarr:/config
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Filmes:/movies
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Downloads:/downloads
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -48,9 +48,9 @@ services:
       - TZ=America/Sao_Paulo
       - UMASK=002
     volumes:
-      - ./config/sonarr:/config
-      - /mnt/e/Multimídia/Series:/tv
-      - /mnt/e/Multimídia/Downloads:/downloads
+      - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/sonarr:/config
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Series:/tv
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Downloads:/downloads
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -68,9 +68,9 @@ services:
       - TZ=America/Sao_Paulo
       - UMASK=002
     volumes:
-      - ./config/bazarr:/config
-      - /mnt/e/Multimídia/Filmes:/movies
-      - /mnt/e/Multimídia/Series:/tv
+      - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/bazarr:/config
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Filmes:/movies
+      - ${MEDIA_DIR:-/mnt/d/Multimídia}/Series:/tv
     ports:
       - 6767:6767
     restart: unless-stopped
@@ -88,7 +88,7 @@ services:
       - TZ=America/Sao_Paulo
       - UMASK=002
     volumes:
-      - ./config/prowlarr:/config
+      - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/prowlarr:/config
     ports:
       - 9696:9696
     restart: unless-stopped
@@ -111,25 +111,27 @@ services:
     networks:
       - media-network
 
-#  jellyfin:
-#    image: lscr.io/linuxserver/jellyfin:latest
-#    container_name: jellyfin
-#    environment:
-#      - PUID=1000
-#      - PGID=1000
-#      - TZ=America/Sao_Paulo
-#      - UMASK=002
-#    volumes:
-#      - ./config/jellyfin:/config
-#      - /mnt/e/Multimídia/Series:/tv
-#      - /mnt/e/Multimídia/Filmes:/movies
-#    ports:
-#      - 8096:8096
-#    restart: unless-stopped
-#    extra_hosts:
-#      - "host.docker.internal:host-gateway"
-#    networks:
-#      - media-network
+  # Jellyfin roda nativo no Windows (não no Docker) para usar a GPU AMD via AMF/D3D11VA.
+  # Mantido comentado como referência / fallback sem aceleração por hardware.
+  # jellyfin:
+  #   image: lscr.io/linuxserver/jellyfin:latest
+  #   container_name: jellyfin
+  #   environment:
+  #     - PUID=1000
+  #     - PGID=1000
+  #     - TZ=America/Sao_Paulo
+  #     - UMASK=002
+  #   volumes:
+  #     - ${CONFIG_DIR:-${HOME}/.local/share/home-streaming}/jellyfin:/config
+  #     - ${MEDIA_DIR:-/mnt/d/Multimídia}/Series:/tv
+  #     - ${MEDIA_DIR:-/mnt/d/Multimídia}/Filmes:/movies
+  #   ports:
+  #     - 8096:8096
+  #   restart: unless-stopped
+  #   extra_hosts:
+  #     - "host.docker.internal:host-gateway"
+  #   networks:
+  #     - media-network
 
 networks:
   media-network:

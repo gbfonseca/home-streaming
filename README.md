@@ -20,13 +20,20 @@ Este repositório contém o ambiente automatizado para download, organização, 
 
 ## 📁 Mapeamento de Volumes (Windows ↔ WSL ↔ Containers)
 
-Todos os dados de mídia e downloads ficam centralizados no disco `E:\Multimídia`:
+Todos os dados de mídia e downloads ficam centralizados no disco `D:\Multimídia` (acessado no WSL como `/mnt/d/Multimídia`).
+O caminho base é controlado pela variável `MEDIA_DIR` (padrão: `/mnt/d/Multimídia`) e pode ser sobrescrito via `.env` ou ambiente:
+
+```bash
+MEDIA_DIR=/mnt/e/Multimídia docker compose up -d
+```
 
 | Origem no Windows | Caminho no WSL | Destino nos Containers | Finalidade |
 | :--- | :--- | :--- | :--- |
-| `E:\Multimídia\Downloads` | `/mnt/e/Multimídia/Downloads` | `/downloads` *(qBittorrent, Radarr, Sonarr)* | Downloads brutos (em progresso/seeding) |
-| `E:\Multimídia\Filmes` | `/mnt/e/Multimídia/Filmes` | `/movies` *(Radarr, Bazarr)* | Filmes renomeados e organizados |
-| `E:\Multimídia\Series` | `/mnt/e/Multimídia/Series` | `/tv` *(Sonarr, Bazarr)* | Séries renomeadas e organizadas |
+| `D:\Multimídia\Downloads` | `/mnt/d/Multimídia/Downloads` | `/downloads` *(qBittorrent, Radarr, Sonarr)* | Downloads brutos (em progresso/seeding) |
+| `D:\Multimídia\Filmes` | `/mnt/d/Multimídia/Filmes` | `/movies` *(Radarr, Bazarr, Jellyfin)* | Filmes renomeados e organizados |
+| `D:\Multimídia\Series` | `/mnt/d/Multimídia/Series` | `/tv` *(Sonarr, Bazarr, Jellyfin)* | Séries renomeadas e organizadas |
+
+> As configurações dos apps (`CONFIG_DIR`, padrão `~/.local/share/home-streaming`) ficam propositalmente no filesystem Linux do WSL: os bancos SQLite do *arr corrompem/travam com facilidade quando ficam em `/mnt/d`.
 
 ---
 
@@ -42,6 +49,26 @@ Para verificar os logs (ou a senha inicial do qBittorrent):
 ```bash
 docker compose logs -f qbittorrent
 ```
+
+### Configuração automática (`scripts/setup.py`)
+
+Depois que os containers subirem e você tiver feito a integração básica (Radarr/Sonarr conectados ao Bazarr), rode dentro do WSL, na raiz do repositório:
+
+```bash
+python3 scripts/setup.py
+```
+
+O script é idempotente (pode rodar quantas vezes quiser) e aplica:
+
+| Serviço | O que configura |
+| :--- | :--- |
+| **qBittorrent** | Nunca baixa `.exe`, `.scr`, `.bat`, `.lnk`, `.msi` e outros executáveis; para o torrent ao terminar de baixar (ratio 0, ação *Stop*) (reinicia o container só se precisar mudar algo) |
+| **Radarr/Sonarr (limpeza)** | *Remove Completed*: depois de importar para `Filmes`/`Series`, remove o torrent do qBittorrent **e os arquivos de `Downloads`** |
+| **Bazarr** | Perfil "Português (Brasil)" como padrão para séries e filmes + providers sem login (soma aos que você já ativou) |
+| **Radarr** | Custom format "Acima de 15 GB" com score -10000 em todos os perfis → filmes acima de 15 GB são rejeitados |
+| **Sonarr** | Tamanho máximo de 68 MB/min em todas as qualidades → ~4 GB por episódio de 1h (packs de temporada continuam valendo) |
+
+Para rodar só uma parte: `python3 scripts/setup.py radarr sonarr`. Os limites e listas são ajustáveis num `.env` (copie de [`.env.example`](.env.example)). As chaves de API são lidas dos arquivos de configuração dos apps; logins de providers (OpenSubtitles, Legendas.net) continuam sendo preenchidos na interface do Bazarr.
 
 ---
 
@@ -118,8 +145,15 @@ docker compose logs -f qbittorrent
 
 ---
 
-### 6. Jellyfin (Instalado no SO / Windows)
-1. Acesse `http://localhost:8096`.
+### 6. Jellyfin (Windows, com aceleração por GPU)
+O Jellyfin roda **nativo no Windows** (o serviço do compose fica comentado) porque a GPU AMD não é acessível de forma confiável pelo Docker no WSL. No Windows ele usa **AMD AMF + D3D11VA** para decodificar/codificar H.264, HEVC e AV1 por hardware.
+
+1. Instale (PowerShell): `winget install Jellyfin.Server` e conclua o assistente em `http://localhost:8096`.
 2. Em **Dashboard** > **Libraries**:
-   - **Biblioteca de Filmes**: Aponte para `E:\Multimídia\Filmes`.
-   - **Biblioteca de Séries**: Aponte para `E:\Multimídia\Series`.
+   - **Filmes**: `D:\Multimídia\Filmes`
+   - **Séries**: `D:\Multimídia\Series`
+3. Em **Dashboard** > **Playback** > **Transcoding**:
+   - *Hardware acceleration*: **AMD AMF**
+   - *Enable hardware decoding for*: H264, HEVC, MPEG2, VC1, VP9, AV1 + HEVC 10bit e VP9 10bit
+   - Marque *Enable hardware encoding*, *Allow encoding in HEVC format* e *Allow encoding in AV1 format*
+   - Marque *Enable Tone mapping* (HDR → SDR para TVs/celulares sem HDR)
